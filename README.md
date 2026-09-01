@@ -1,0 +1,74 @@
+# gmail-mcp
+
+MCP server exposing Gmail to agents — search, read, label, draft and send.
+
+Unlike `messages-mcp` this has **no machine dependency**. It is plain HTTPS
+against the Gmail API with a stored refresh token, so it runs on the Mac, the Pi
+or a Fly worker equally, and works while every one of them is asleep.
+
+## Setup
+
+One-time, and steps 1–4 have to happen in a browser because Google has no API
+for creating its own OAuth clients.
+
+1. **Create a project** at <https://console.cloud.google.com/projectcreate>.
+2. **Enable the APIs** — Gmail API, and People API for contact lookup.
+3. **Configure the OAuth consent screen** as *External*, and add the account
+   itself as a test user. Publishing is unnecessary for personal use; a test
+   user's refresh token does not expire the way an unverified app's does for
+   outside users.
+4. **Create credentials → OAuth client ID → Desktop app**, and download the JSON.
+5. Exchange it for a refresh token:
+
+   ```
+   ./.venv/bin/python authorize.py ~/Downloads/client_secret_*.json
+   ```
+
+   It prints a URL instead of opening a browser, because it normally runs in a
+   terminal that isn't the browser's context. Approve, and it writes `.env`
+   (mode 600, gitignored) holding the client id, secret and refresh token.
+
+## Scopes
+
+| Scope | Why |
+|---|---|
+| `gmail.modify` | read, search, label, archive, draft |
+| `gmail.send` | send |
+| `contacts.readonly` | resolve names to addresses |
+
+`gmail.modify` deliberately excludes sending. Send is a separate scope so the
+ability to mail people is granted explicitly rather than arriving as a side
+effect of read access. Neither scope permits permanent deletion.
+
+## Tools
+
+| Tool | What it does |
+|---|---|
+| `search_email` | Gmail query syntax — `is:unread`, `from:x`, `newer_than:2d` |
+| `get_email` | One message with its body text |
+| `get_email_thread` | Every message in a conversation |
+| `list_labels` | Labels with unread and total counts |
+| `find_email_contact` | Look a person up in Google Contacts |
+| `send_email` | Send, optionally as a reply within a thread |
+| `create_draft` | Save without sending |
+| `modify_email` | Add/remove labels — archive is removing `INBOX` |
+
+## Two things worth knowing
+
+**A message body is a tree, not a field.** Readable text can sit at the top
+level, inside `multipart/alternative`, or not exist at all with only HTML
+present. `_walk_body` visits the whole part tree and prefers plain text,
+falling back to stripped HTML, so mail from senders who ship HTML only still
+reads as text.
+
+**Replying needs headers, not just a thread id.** Setting `threadId` alone still
+produces a new conversation in most clients; `In-Reply-To` and `References` are
+what actually thread it. `send_email` fetches the original's `Message-Id` and
+sets both.
+
+## Not in scope
+
+No watcher and nothing reacts to mail arriving. These are on-demand tools an
+agent calls. Reacting to new mail would use Gmail's `users.watch` push into a
+Pub/Sub topic delivered to a public HTTPS endpoint — which is why that leg would
+live on Fly rather than here, and why it needs re-arming every 7 days.
