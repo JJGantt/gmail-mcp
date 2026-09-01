@@ -67,7 +67,7 @@ security assessment).
 
 | Tool | What it does |
 |---|---|
-| `search_email` | Gmail query syntax — `is:unread`, `from:x`, `newer_than:2d` |
+| `search_email` | Gmail query syntax — `category:primary`, `is:unread`, `from:x`, `newer_than:2d` |
 | `get_email` | One message with its body text |
 | `get_email_thread` | Every message in a conversation |
 | `list_labels` | Labels with unread and total counts |
@@ -75,6 +75,22 @@ security assessment).
 | `send_email` | Send, optionally as a reply within a thread |
 | `create_draft` | Save without sending |
 | `modify_email` | Add/remove labels — archive is removing `INBOX` |
+
+## The docstring is the interface
+
+`search_email` passes `query` straight to Gmail, so filtering happens server-side
+across the whole mailbox — but only if the model writes a narrow query. Nothing
+forces it to. The tool description is the only thing steering that choice, which
+makes it load-bearing rather than decorative.
+
+Two reasons a broad query is worse than it looks. It wastes context: this mailbox
+holds ~78k messages of which only ~3k are Primary, so an unfiltered `is:unread`
+page measured 28/30 irrelevant. And it is *incomplete*: a wide page is the newest
+N of everything, so the message actually being looked for may simply not be on it.
+
+So the description names the operators explicitly — `category:primary` above all,
+since Gmail's Primary/Social/Promotions tabs are just labels and that split is the
+highest-leverage filter on this account.
 
 ## Two things worth knowing
 

@@ -115,9 +115,28 @@ def _summary(msg: dict) -> dict:
 def search_email(query: str = "in:inbox", limit: int = 20) -> list[dict]:
     """Search mail using Gmail's own query syntax, newest first.
 
+    Narrow with `query`; do not pull broadly and filter the results afterwards.
+    Gmail evaluates the query server-side across the whole mailbox, so a precise
+    query is both cheaper and more complete than sifting a wide page — a wide
+    page is only the newest N of everything, so the message actually wanted may
+    not be in it at all.
+
+    This matters more than usual on this mailbox: of ~78k messages only ~3k are
+    Primary, so an unfiltered `is:unread` is ~96% promotions and updates.
+
+    Useful operators:
+      category:primary        the Primary tab — usually what "my email" means
+      category:promotions | social | updates | forums
+      is:unread  is:starred  is:important
+      from:  to:  subject:  has:attachment  larger:5M
+      newer_than:2d  older_than:1y  after:2026/08/01
+      in:inbox (default scope)  in:spam  in:trash  in:anywhere
+
+    Spam and trash are excluded unless asked for by name.
+
     Args:
-        query: a Gmail search string — e.g. "is:unread", "from:bank.com",
-            "in:inbox newer_than:2d", "subject:invoice has:attachment".
+        query: a Gmail search string. Prefer the narrowest one that answers the
+            question, e.g. "category:primary is:unread newer_than:3d".
         limit: how many messages to return.
     """
     listing = _gmail().users().messages().list(
