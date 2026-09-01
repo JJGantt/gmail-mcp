@@ -19,12 +19,13 @@ import sys
 
 from google_auth_oauthlib.flow import InstalledAppFlow
 
-# gmail.modify covers reading, labelling and drafting but deliberately NOT
-# sending — send is a separate scope so the ability to email people is granted
-# explicitly rather than smuggled in with read access.
+# gmail.modify is every read and write operation EXCEPT permanent deletion —
+# reading, searching, labelling, archiving, drafting and sending all included.
+# It cannot bypass the trash, and it grants nothing over account settings
+# (filters, forwarding, send-as), which live in gmail.settings.* and are not
+# requested. So the worst an agent can do to this mailbox is recoverable.
 SCOPES = [
     "https://www.googleapis.com/auth/gmail.modify",
-    "https://www.googleapis.com/auth/gmail.send",
     "https://www.googleapis.com/auth/contacts.readonly",
 ]
 

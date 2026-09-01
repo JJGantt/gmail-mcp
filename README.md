@@ -43,13 +43,25 @@ for creating its own OAuth clients.
 
 | Scope | Why |
 |---|---|
-| `gmail.modify` | read, search, label, archive, draft |
-| `gmail.send` | send |
+| `gmail.modify` | read, search, label, archive, trash, draft **and send** |
 | `contacts.readonly` | resolve names to addresses |
 
-`gmail.modify` deliberately excludes sending. Send is a separate scope so the
-ability to mail people is granted explicitly rather than arriving as a side
-effect of read access. Neither scope permits permanent deletion.
+Two scopes, not more, because `gmail.modify` is already every read and write
+operation short of permanent deletion — Google describes it as "read, compose,
+and send." Adding `gmail.send` alongside it, as this first did, grants nothing.
+
+What is deliberately *not* requested matters more than what is:
+
+- **`https://mail.google.com/`** — the only scope that permanently deletes,
+  bypassing the trash. Without it, the worst an agent can do to this mailbox is
+  recoverable from Trash for 30 days.
+- **`gmail.settings.basic` / `gmail.settings.sharing`** — filters, forwarding
+  rules, send-as identities, delegation. These are the settings an attacker
+  changes to persist in a mailbox, and nothing here needs them.
+
+`gmail.modify` is a *restricted* scope, so it is the reason production status
+goes unverified rather than verified (verification of a restricted scope means a
+security assessment).
 
 ## Tools
 

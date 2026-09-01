@@ -30,7 +30,6 @@ load_dotenv(pathlib.Path(__file__).parent / ".env")
 TOKEN_URI = "https://oauth2.googleapis.com/token"
 SCOPES = [
     "https://www.googleapis.com/auth/gmail.modify",
-    "https://www.googleapis.com/auth/gmail.send",
     "https://www.googleapis.com/auth/contacts.readonly",
 ]
 
