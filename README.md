@@ -13,10 +13,21 @@ for creating its own OAuth clients.
 
 1. **Create a project** at <https://console.cloud.google.com/projectcreate>.
 2. **Enable the APIs** — Gmail API, and People API for contact lookup.
-3. **Configure the OAuth consent screen** as *External*, and add the account
-   itself as a test user. Publishing is unnecessary for personal use; a test
-   user's refresh token does not expire the way an unverified app's does for
-   outside users.
+3. **Configure the OAuth consent screen** as *External*, declare the three
+   scopes below, and then **set the publishing status to "In production"**.
+
+   Production is not optional here. An external app left in **Testing** status
+   is issued refresh tokens that Google revokes after **7 days**, which would
+   take the integration down weekly with no signal beyond a sudden
+   `invalid_grant`. Publishing status is the only thing that governs this;
+   verification does not enter into it.
+
+   Going to production *unverified* is the right call for personal use. It costs
+   an "unverified app" interstitial at consent — click Advanced, then continue —
+   and caps the app at 100 users. Verification exists to remove that warning for
+   strangers, and there are no strangers here. Requesting it for restricted
+   Gmail scopes means a security assessment, for no benefit to a single-user
+   app.
 4. **Create credentials → OAuth client ID → Desktop app**, and download the JSON.
 5. Exchange it for a refresh token:
 
@@ -65,6 +76,20 @@ reads as text.
 produces a new conversation in most clients; `In-Reply-To` and `References` are
 what actually thread it. `send_email` fetches the original's `Message-Id` and
 sets both.
+
+## What still revokes the token
+
+Publishing to production removes the 7-day clock but not these, which are worth
+knowing because each one looks identical from the outside — an `invalid_grant`
+and a dead integration:
+
+- **Changing the Google account password.** Refresh tokens carrying Gmail scopes
+  are revoked on password change. This is the most likely cause in practice.
+- **Six months without use.**
+- **Revoking access** at <https://myaccount.google.com/permissions>.
+- **More than 100 live tokens** for this client, which invalidates the oldest.
+
+Re-running `authorize.py` fixes all of them.
 
 ## Not in scope
 
