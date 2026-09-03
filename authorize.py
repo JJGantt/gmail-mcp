@@ -24,9 +24,15 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 # It cannot bypass the trash, and it grants nothing over account settings
 # (filters, forwarding, send-as), which live in gmail.settings.* and are not
 # requested. So the worst an agent can do to this mailbox is recoverable.
+#
+# contacts (not contacts.readonly) because renaming and merging entries is a
+# wanted operation. There is no narrower Google scope — no read-plus-edit-names
+# variant — so this also carries delete. Unlike Gmail there is no trash to
+# recover from: People API deletes are immediate and permanent. Keep destructive
+# contact operations out of the tool surface; read paths use it read-only.
 SCOPES = [
     "https://www.googleapis.com/auth/gmail.modify",
-    "https://www.googleapis.com/auth/contacts.readonly",
+    "https://www.googleapis.com/auth/contacts",
 ]
 
 HERE = pathlib.Path(__file__).parent

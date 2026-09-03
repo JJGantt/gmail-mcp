@@ -44,11 +44,17 @@ for creating its own OAuth clients.
 | Scope | Why |
 |---|---|
 | `gmail.modify` | read, search, label, archive, trash, draft **and send** |
-| `contacts.readonly` | resolve names to addresses |
+| `contacts` | resolve names to addresses, and rename or merge entries |
 
 Two scopes, not more, because `gmail.modify` is already every read and write
 operation short of permanent deletion — Google describes it as "read, compose,
 and send." Adding `gmail.send` alongside it, as this first did, grants nothing.
+
+`contacts` is the read-write scope, widened from `contacts.readonly` so entries
+can be renamed and merged. Google offers nothing between the two, so it carries
+delete as well — and unlike Gmail there is no trash: a People API delete is
+immediate and permanent. Nothing in this server's tool surface deletes a contact,
+and nothing should be added that does.
 
 What is deliberately *not* requested matters more than what is:
 
