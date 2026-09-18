@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Is the stored Gmail grant still good on THIS machine?
+#
+# Exists because the token is per-machine (.env is gitignored) and a revoked one
+# is invisible: every mail tool fails with invalid_grant while the machine next
+# to it works fine. Run it on both the Mac and the Pi.
+#
+# Prints the mailbox address and exits 0 when healthy; prints the Google error
+# and exits 1 when the grant is dead.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+exec ./.venv/bin/python -c '
+import sys
+try:
+    import gmail_mcp as g
+    print(g._service("gmail", "v1").users().getProfile(userId="me").execute()["emailAddress"])
+except Exception as e:
+    print("FAILED: %s: %s" % (type(e).__name__, e), file=sys.stderr)
+    sys.exit(1)
+'

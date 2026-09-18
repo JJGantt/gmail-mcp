@@ -123,7 +123,32 @@ and a dead integration:
 - **Revoking access** at <https://myaccount.google.com/permissions>.
 - **More than 100 live tokens** for this client, which invalidates the oldest.
 
-Re-running `authorize.py` fixes all of them.
+Re-running `authorize.py` fixes all of them — on the machine it is run on.
+
+### The token lives on two machines
+
+`.env` is gitignored, so the Mac and the Pi each hold their own copy and a pull
+never reconciles them. Re-authorizing on one machine leaves the other on whatever
+it had, and the Pi is the half that matters most: it claims voice requests before
+the Mac does (`WORKER_PRIORITY=pi,mac,fly`), so a dead token there fails every
+spoken mail request while the Mac's own tools work perfectly.
+
+That is not hypothetical. The 2026-09-01 password change revoked both copies; only
+the Mac was re-authorized, and the Pi ran on the revoked token until 2026-09-17 —
+sixteen days in which "check my email" answered *search failed* and nothing else
+showed a symptom.
+
+A refresh token is not machine-bound, so the fix is one grant copied to both,
+never a separate `authorize.py` run per machine:
+
+    scp ~/repos/gmail-mcp/.env pi:~/repos/gmail-mcp/.env
+
+`bin/check` answers whether the grant on the machine it runs on is still good —
+it prints the mailbox address, or the Google error and a non-zero exit. Run it on
+both:
+
+    ~/repos/gmail-mcp/bin/check
+    ssh pi ~/repos/gmail-mcp/bin/check
 
 ## Not in scope
 
