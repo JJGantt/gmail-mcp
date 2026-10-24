@@ -125,13 +125,15 @@ and a dead integration:
 
 Re-running `authorize.py` fixes all of them — on the machine it is run on.
 
-### The token lives on two machines
+### The token lives in three places
 
 `.env` is gitignored, so the Mac and the Pi each hold their own copy and a pull
-never reconciles them. Re-authorizing on one machine leaves the other on whatever
-it had, and the Pi is the half that matters most: it claims voice requests before
-the Mac does (`WORKER_PRIORITY=pi,mac,fly`), so a dead token there fails every
-spoken mail request while the Mac's own tools work perfectly.
+never reconciles them, and the Fly voice worker (`jared-voice-worker`) holds a
+third as the secrets `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` /
+`GOOGLE_REFRESH_TOKEN`. Re-authorizing in one place leaves the others on whatever
+they had, and Fly is the copy that matters most: it claims voice requests first
+(`WORKER_PRIORITY=fly,pi,mac`), so a dead token there fails every spoken mail
+request while the Mac's own tools work perfectly.
 
 That is not hypothetical. The 2026-09-01 password change revoked both copies; only
 the Mac was re-authorized, and the Pi ran on the revoked token until 2026-09-17 —
@@ -142,6 +144,7 @@ A refresh token is not machine-bound, so the fix is one grant copied to both,
 never a separate `authorize.py` run per machine:
 
     scp ~/repos/gmail-mcp/.env pi:~/repos/gmail-mcp/.env
+    grep ^GOOGLE_ ~/repos/gmail-mcp/.env | fly secrets import -a jared-voice-worker
 
 `bin/check` answers whether the grant on the machine it runs on is still good —
 it prints the mailbox address, or the Google error and a non-zero exit. Run it on
