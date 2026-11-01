@@ -13,7 +13,7 @@ for creating its own OAuth clients.
 
 1. **Create a project** at <https://console.cloud.google.com/projectcreate>.
 2. **Enable the APIs** — Gmail API, and People API for contact lookup.
-3. **Configure the OAuth consent screen** as *External*, declare the three
+3. **Configure the OAuth consent screen** as *External*, declare the two
    scopes below, and then **set the publishing status to "In production"**.
 
    Production is not optional here. An external app left in **Testing** status
@@ -153,9 +153,9 @@ both:
     ~/repos/gmail-mcp/bin/check
     ssh pi ~/repos/gmail-mcp/bin/check
 
-## Not in scope
+#### Not in scope
 
 No watcher and nothing reacts to mail arriving. These are on-demand tools an
-agent calls. Reacting to new mail would use Gmail's `users.watch` push into a
-Pub/Sub topic delivered to a public HTTPS endpoint — which is why that leg would
-live on Fly rather than here, and why it needs re-arming every 7 days.
+agent calls. Reacting to new mail is a separate service, `gmail-watcher`, which
+registers the mailbox with Gmail's `users.watch` against a Pub/Sub topic and
+reads it by streaming pull, so it needs no public endpoint.
