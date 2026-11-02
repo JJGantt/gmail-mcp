@@ -48,7 +48,7 @@ for creating its own OAuth clients.
 
 Two scopes, not more, because `gmail.modify` is already every read and write
 operation short of permanent deletion — Google describes it as "read, compose,
-and send." Adding `gmail.send` alongside it, as this first did, grants nothing.
+and send." Adding `gmail.send` alongside it grants nothing.
 
 `contacts` is the read-write scope, widened from `contacts.readonly` so entries
 can be renamed and merged. Google offers nothing between the two, so it carries
