@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# Copy this machine's Gmail grant (.env) to everything else that uses it, then check each copy.
+#
+# A refresh token is not machine-bound, and every holder must have the same one: re-authorizing
+# revokes nothing, but a password change revokes all of them at once, and a holder left on the old
+# grant fails every mail call while the rest work. authorize.py runs this when it writes .env, so a
+# new grant reaches every holder in the same step.
+#
+#   bin/distribute            # Pi + Fly apps, applied now (Fly restarts each app)
+#   bin/distribute --stage    # Fly secrets staged, taking effect at each app's next deploy
+#
+# HOLDERS: the Pi's checkout, and the Fly apps that pass the grant to a gmail MCP of their own.
+FLY_APPS=(jared-voice-worker jared-desk-fly ops-responder)
+set -uo pipefail
+cd "$(dirname "$0")/.."
+stage=()
+[ "${1:-}" = "--stage" ] && stage=(--stage)
+[ -f .env ] || { echo "no .env here: run authorize.py first" >&2; exit 1; }
+if [ -z "${FLY_API_TOKEN:-}" ] && [ -f ~/.fly/config.yml ]; then
+  FLY_API_TOKEN="$(awk -F': ' '/^access_token:/{print $2}' ~/.fly/config.yml)"; export FLY_API_TOKEN
+fi
+fail=0
+
+bin/check >/dev/null || { echo "the grant on this machine does not work; not distributing it" >&2; exit 1; }
+
+if scp -q -p .env pi:repos/gmail-mcp/.env; then
+  ssh pi repos/gmail-mcp/bin/check >/dev/null && echo "pi: ok" || { echo "pi: copied, but check failed" >&2; fail=1; }
+else
+  echo "pi: copy failed" >&2; fail=1
+fi
+
+for app in "${FLY_APPS[@]}"; do
+  if grep '^GOOGLE_' .env | fly secrets import -a "$app" "${stage[@]}" >/dev/null 2>&1; then
+    echo "fly $app: ${stage:+staged}${stage:-set}"
+  else
+    echo "fly $app: secrets import failed" >&2; fail=1
+  fi
+done
+exit $fail

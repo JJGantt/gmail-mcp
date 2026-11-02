@@ -123,35 +123,25 @@ and a dead integration:
 - **Revoking access** at <https://myaccount.google.com/permissions>.
 - **More than 100 live tokens** for this client, which invalidates the oldest.
 
-Re-running `authorize.py` fixes all of them — on the machine it is run on.
+Re-running `authorize.py` fixes all of them, everywhere (below).
 
-### The token lives in three places
+### Every holder needs the same grant
 
-`.env` is gitignored, so the Mac and the Pi each hold their own copy and a pull
-never reconciles them, and the Fly voice worker (`jared-voice-worker`) holds a
-third as the secrets `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` /
-`GOOGLE_REFRESH_TOKEN`. Re-authorizing in one place leaves the others on whatever
-they had, and Fly is the copy that matters most: it claims voice requests first
-(`WORKER_PRIORITY=fly,pi,mac`), so a dead token there fails every spoken mail
-request while the Mac's own tools work perfectly.
+`.env` is gitignored, so the Mac and the Pi each hold their own copy, and three Fly apps hold it as
+the secrets `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_REFRESH_TOKEN`: `jared-voice-worker`
+(spoken mail requests; it claims voice first, `WORKER_PRIORITY=fly,pi,mac`), `jared-desk-fly`, and
+`ops-responder` (its email fallback). A holder left on a revoked grant fails every mail call while the
+others work.
 
-That is not hypothetical. The 2026-09-01 password change revoked both copies; only
-the Mac was re-authorized, and the Pi ran on the revoked token until 2026-09-17 —
-sixteen days in which "check my email" answered *search failed* and nothing else
-showed a symptom.
+`authorize.py` hands the new grant to all of them as its last step, through `bin/distribute` (copy to
+the Pi, `fly secrets import` on each app in its `FLY_APPS`, then `bin/check` on the Pi). A refresh token
+is not machine-bound, so one grant distributed is the fix, never a separate `authorize.py` run per
+machine. Run `bin/distribute` alone to re-send the grant this machine holds; `--stage` leaves the Fly
+apps to pick it up at their next deploy instead of restarting them. A new Fly app that runs the gmail
+MCP goes in `FLY_APPS`.
 
-A refresh token is not machine-bound, so the fix is one grant copied to both,
-never a separate `authorize.py` run per machine:
-
-    scp ~/repos/gmail-mcp/.env pi:~/repos/gmail-mcp/.env
-    grep ^GOOGLE_ ~/repos/gmail-mcp/.env | fly secrets import -a jared-voice-worker
-
-`bin/check` answers whether the grant on the machine it runs on is still good —
-it prints the mailbox address, or the Google error and a non-zero exit. Run it on
-both:
-
-    ~/repos/gmail-mcp/bin/check
-    ssh pi ~/repos/gmail-mcp/bin/check
+`bin/check` answers whether the grant on the machine it runs on is still good — it prints the mailbox
+address, or the Google error and a non-zero exit.
 
 #### Not in scope
 

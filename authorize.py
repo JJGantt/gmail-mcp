@@ -15,6 +15,7 @@ redirect.
 
 import json
 import pathlib
+import subprocess
 import sys
 
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -67,7 +68,8 @@ def main() -> int:
     )
     ENV.chmod(0o600)
     print(f"\nwrote {ENV} (refresh token stored, mode 600)")
-    return 0
+    # Every other holder gets this grant now rather than whenever someone remembers (bin/distribute).
+    return subprocess.call([str(pathlib.Path(__file__).parent / "bin" / "distribute")])
 
 
 if __name__ == "__main__":
